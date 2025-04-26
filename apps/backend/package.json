@@ -1,0 +1,21 @@
+{
+    "name": "Techware-backend",
+    "version": "1.0.0",
+    "description": "Sample backend REST API for cloud-native architecture",
+    "main": "app.js",
+    "scripts": {
+      "start": "node app.js",
+      "dev": "nodemon app.js",
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+      "cors": "^2.8.5",
+      "express": "^4.18.2",
+      "helmet": "^7.0.0",
+      "morgan": "^1.10.0",
+      "winston": "^3.9.0"
+    },
+    "devDependencies": {
+      "nodemon": "^2.0.22"
+    }
+  }
