@@ -1,6 +1,7 @@
-# Cloud-Native Architecture on AWS
+# Cloud-Native Architecture on AWS: TechWare Application Deployment Guide
 
-This repository contains the infrastructure as code (Terraform) and application code for a secure, scalable cloud-native architecture deployed on AWS.
+
+This repository contains the infrastructure as code (Terraform) and application code for a secure, scalable cloud-native architecture deployed on AWS for Techware project .
 
 ## Architecture Overview
 
