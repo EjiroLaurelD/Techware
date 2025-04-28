@@ -28,7 +28,7 @@ resource "aws_internet_gateway" "main" {
 # Elastic IPs for NAT Gateways
 resource "aws_eip" "nat" {
   count      = length(var.availability_zones)
-  domain     = "vpc"
+  # domain     = "vpc"
   depends_on = [aws_internet_gateway.main]
 
   tags = {

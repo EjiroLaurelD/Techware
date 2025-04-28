@@ -14,7 +14,7 @@ RUN npm install
 COPY . .
 
 # Expose the backend API port (5000 in this case)
-EXPOSE 5000
+EXPOSE 80
 
 # Start the Express app
 CMD ["node", "server.js"]

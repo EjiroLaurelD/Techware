@@ -44,7 +44,7 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 80;
 
 // Get frontend URL from environment variable (for flexibility)
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'; // Default for local dev
@@ -61,6 +61,10 @@ app.use(cors(corsOptions));
 // Example route for testing the backend API
 app.get('/api/data', (req, res) => {
   res.json({ message: 'Data from the backend API' });
+});
+
+app.get('/', (req, res) => {
+  res.status(200).send('OK');
 });
 
 // Start the server

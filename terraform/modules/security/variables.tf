@@ -22,5 +22,5 @@ variable "admin_cidrs" {
 variable "backend_port" {
   description = "Port that the backend API will listen on"
   type        = number
-  default     = 8080
+  default     = 80
 }

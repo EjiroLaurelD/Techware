@@ -1,196 +1,244 @@
 # Cloud-Native Architecture on AWS
 
-This project implements a secure, scalable, and production-ready cloud-native architecture on AWS that supports both backend services (running in ECS Fargate) and a frontend application (running on EC2 instances).
+This repository contains the infrastructure as code (Terraform) and application code for a secure, scalable cloud-native architecture deployed on AWS.
 
 ## Architecture Overview
 
-![Architecture Diagram](architecture_diagram.png)
-
 The architecture consists of the following components:
 
-1. **Network Layer**
-   - VPC with public and private subnets across multiple Availability Zones
-   - Internet Gateway for public internet access
-   - NAT Gateways for outbound internet access from private subnets
-   - Route tables, VPC Flow Logs, and security groups for network security
+![Architecture Diagram](architecture-diagram.png)
 
-2. **Backend Services**
-   - ECS Fargate cluster for running containerized microservices
-   - REST API sample application deployed as a Fargate task
-   - Internal Application Load Balancer for backend services
-   - Auto-scaling capabilities based on demand
+### Network Layer
+- VPC with public and private subnets across multiple Availability Zones
+- Internet Gateway for public internet access
+- NAT Gateway for private subnet internet access
+- Security groups with least privilege access control
 
-3. **Frontend Application**
-   - EC2 instances in a public subnet running the React frontend application
-   - Auto Scaling Group for high availability and scalability
-   - Public Application Load Balancer for frontend traffic
-   - CloudWatch alarms and metrics for monitoring
+### Backend Services
+- ECS Fargate cluster running containerized microservices
+- Backend API deployed as ECS Tasks in private subnets
+- Internal Application Load Balancer (not publicly accessible)
+- Auto-scaling based on demand
 
-4. **Security Measures**
-   - Network segmentation with public and private subnets
-   - Security groups with least privilege access
-   - IAM roles and policies with specific permissions
-   - HTTPS/TLS encryption for all traffic
-   - Internal-only access to backend services
+### Frontend Application
+- EC2 instances in public subnets running a dockerized frontend application
+- Frontend Docker image pulled from ECR repository
+- Public-facing Application Load Balancer
+- Auto Scaling Group for high availability
 
-5. **DNS Configuration**
-   - Custom domain setup with Route53
-   - SSL certificates for secure communication
-   - A-records for frontend and backend applications
+## Secure Communication Between Frontend and Backend
 
-## Security Implementation
+The architecture implements a secure communication flow between frontend and backend:
 
-### Network-level Security
-- VPC Flow Logs to monitor network traffic
-- Security Groups with strict ingress/egress rules
-- Private subnets for backend services
-- NAT Gateways for secure outbound internet access
+1. **Network Isolation**
+   - Backend services run in private subnets with no direct internet access
+   - Only the frontend application can communicate with the backend services
+   - Backend ALB is internal and not accessible from the internet
 
-### Application-level Security
-- HTTPS/TLS encryption for all communication
-- IAM roles with least privilege
-- SSL certificates for frontend and backend endpoints
-- Secure communication between frontend and backend via internal DNS
+2. **Security Group Controls**
+   - Frontend security group allows outbound traffic only to the backend ALB
+   - Backend ALB security group only permits inbound traffic from the frontend security group
+   - ECS tasks security group only accepts traffic from the backend ALB security group
 
-## High Availability and Fault Tolerance
-- Resources deployed across multiple Availability Zones
-- Auto Scaling for frontend and backend components
-- Load balancers to distribute traffic
-- Health checks and self-healing infrastructure
+3. **Encrypted Traffic**
+   - All communication uses HTTPS/TLS encryption
+   - Security headers and CORS policies restrict allowed origins
 
-## Infrastructure as Code
-- Terraform modules for reusable and modular infrastructure
-- Environment-specific configurations
-- Secure state management with S3 and DynamoDB
+This security design ensures that backend services are protected from direct internet exposure, while still being accessible to the frontend application.
 
 ## Deployment Instructions
 
 ### Prerequisites
-1. AWS CLI configured with appropriate credentials
-2. Terraform v1.0.0 or later
-3. A registered domain name (for custom domain setup)
-4. Docker installed (for building backend container image)
 
-### Deployment Steps
+1. AWS CLI installed and configured with appropriate credentials
+2. Terraform v1.0.0 or later installed
+3. Docker installed for building container images
+4. An AWS account with appropriate permissions
 
-1. **Clone this repository**
+### Step 1: Create Backend Container Image
+
+```bash
+# Navigate to the backend directory
+cd apps/backend
+
+# Build the Docker image
+docker build -t backend-app:latest .
+
+# Create ECR repository (if it doesn't exist)
+aws ecr create-repository --repository-name backend-app
+
+# Tag the image for ECR
+aws ecr get-login-password --region YOUR_REGION | docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com
+docker tag backend-app:latest YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/backend-app:latest
+
+# Push image to ECR
+docker push YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/backend-app:latest
+```
+
+### Step 2: Create Frontend Container Image
+
+```bash
+# Navigate to the frontend directory
+cd apps/frontend
+
+# Build the Docker image
+docker build -t frontend-app:latest .
+
+# Create ECR repository (if it doesn't exist)
+aws ecr create-repository --repository-name frontend-app
+
+# Tag the image for ECR
+docker tag frontend-app:latest YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/frontend-app:latest
+
+# Push image to ECR
+docker push YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/frontend-app:latest
+```
+
+### Step 3: Create S3 Bucket for Terraform State
+
+```bash
+# Create an S3 bucket for Terraform state
+aws s3 mb s3://your-terraform-state-bucket --region YOUR_REGION
+
+# Create a DynamoDB table for state locking
+aws dynamodb create-table \
+  --table-name terraform-locks \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST \
+  --region YOUR_REGION
+```
+
+### Step 4: Update Terraform Variables
+
+Edit `terraform.tfvars` to set your specific values:
+
+```hcl
+project_name  = "your-project-name"
+environment   = "prod"
+aws_region    = "your-region"
+api_image     = "YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/backend-app:latest"
+frontend_image = "YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/frontend-app:latest"
+```
+
+### Step 5: Initialize and Apply Terraform
+
+```bash
+# Initialize Terraform
+terraform init 
+
+# Create a plan
+terraform plan -out=tfplan
+
+# Apply the plan
+terraform apply tfplan
+```
+
+### Step 6: Access the Application
+
+After successful deployment, Terraform will output the frontend URL:
+
+```bash
+# Show the outputs
+terraform output
+
+# You should see something like:
+# frontend_url = "http://your-frontend-alb-1234567890.YOUR_REGION.elb.amazonaws.com"
+```
+
+Access the frontend application using the URL provided in the output.
+
+## Testing Backend Health
+
+Since the backend ALB is in a private subnet, you can't access it directly from the internet. To verify the backend is working properly:
+
+1. SSH into one of the frontend instances or use ssm:
    ```bash
-   git clone https://github.com/your-username/cloud-native-aws.git
-   cd cloud-native-aws
+   aws ec2 describe-instances --filters "Name=tag:Name,Values=*frontend*" --query "Reservations[*].Instances[*].[InstanceId,PublicIpAddress]" --output table
+   
+   ssh -i your-key.pem ec2-user@FRONTEND_PUBLIC_IP
    ```
 
-2. **Build and push the backend Docker image**
+2. From the frontend instance, curl the backend ALB:
    ```bash
-   cd apps/backend
-   docker build -t cloud-native-backend:latest .
+   # Get the backend ALB DNS name from Terraform output
+   terraform output backend_url
    
-   # Tag and push to your ECR repository
-   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com
-   docker tag cloud-native-backend:latest ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/cloud-native-backend:latest
-   docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/cloud-native-backend:latest
-   ```
-
-3. **Create an S3 bucket and DynamoDB table for Terraform state**
-   ```bash
-   aws s3 mb s3://terraform-state-cloud-native-demo-dev
+   # Test the health endpoint ensuring to use the right endpoint. it is usually "/" or "/health"
+   curl -v http://BACKEND_ALB_DNS_NAME/
    
-   aws dynamodb create-table \
-       --table-name terraform-locks-cloud-native-demo-dev \
-       --attribute-definitions AttributeName=LockID,AttributeType=S \
-       --key-schema AttributeName=LockID,KeyType=HASH \
-       --billing-mode PAY_PER_REQUEST
+   # Test the API endpoint
+   curl -v http://BACKEND_ALB_DNS_NAME/api/data
    ```
 
-4. **Update Terraform variables**
-   
-   Edit `terraform/environments/dev/terraform.tfvars`:
-   ```hcl
-   project_name      = "cloud-native-demo"
-   environment       = "dev"
-   aws_region        = "us-east-1"
-   domain_name       = "your-domain.com"
-   api_image         = "${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/cloud-native-backend:latest"
-   ```
+## Destroying the Infrastructure
 
-5. **Initialize and apply Terraform**
-   ```bash
-   cd terraform/environments/dev
-   terraform init
-   terraform plan
-   terraform apply
-   ```
+When you're done, you can destroy the infrastructure:
 
-6. **Verify the deployment**
-   ```bash
-   # Check ECS service status
-   aws ecs describe-services --cluster cloud-native-demo-dev-cluster --services cloud-native-demo-dev-api
-   
-   # Check EC2 instances
-   aws ec2 describe-instances --filters "Name=tag:Name,Values=cloud-native-demo-dev-frontend"
-   ```
+```bash
+terraform destroy
+```
 
-7. **Access the application**
-   
-   Once deployment is complete, you can access the frontend at:
-   ```
-   https://app.your-domain.com
-   ```
+## Architecture Customization
 
-   The backend API will be available at:
-   ```
-   https://api.your-domain.com
-   ```
+### Scaling Configuration
 
-## Frontend-Backend Communication
+You can adjust the scaling parameters in `variables.tf`:
 
-The frontend application communicates with the backend services through the following mechanism:
+```hcl
+variable "min_size" {
+  description = "Minimum size of the Auto Scaling Group"
+  type        = number
+  default     = 1
+}
 
-1. The frontend EC2 instances are configured with the backend API endpoint during launch:
-   ```
-   https://api.your-domain.com
-   ```
+variable "max_size" {
+  description = "Maximum size of the Auto Scaling Group"
+  type        = number
+  default     = 3
+}
+```
 
-2. The API endpoint is internal to the VPC but has a DNS record in Route53.
+### Changing Backend Health Check Path
 
-3. All communication uses HTTPS with TLS encryption.
+If you need to use a different health check path:
 
-4. CORS is configured on the backend to accept requests only from the frontend domain.
+```hcl
+variable "health_check_path" {
+  description = "Path for health checks"
+  type        = string
+  default     = "/health"
+}
+```
 
-5. The frontend uses Axios to make API calls to the backend endpoints:
-   ```javascript
-   const API_URL = import.meta.env.VITE_API_URL || 'https://api.your-domain.com';
-   const response = await axios.get(`${API_URL}/api/v1/items`);
-   ```
+## Troubleshooting
 
-## Monitoring and Maintenance
+### Common Issues
 
-### Monitoring
-- CloudWatch metrics for ECS, EC2, and load balancers
-- CloudWatch alarms for CPU, memory, and other critical metrics
-- VPC Flow Logs for network monitoring
-- CloudWatch Logs for application logging
+1. **Task failing health checks**: Ensure your backend application has a working `/health` endpoint and is listening on the correct port.
 
-### Scaling
-- Auto Scaling policies based on CPU utilization
-- ECS service scaling based on demand
-- Load balancer health checks for instance replacement
+2. **Unable to reach backend from frontend**: Check security group rules to ensure frontend instances can reach the backend ALB.
 
-### Maintenance
-- Use the ECS console or CLI for backend updates:
-  ```bash
-  aws ecs update-service --cluster cloud-native-demo-dev-cluster --service cloud-native-demo-dev-api --force-new-deployment
-  ```
+3. **Docker image issues**: Verify the ECR repository URI and image tag.
 
-- For frontend updates, deploy new code via SSH or user data script:
-  ```bash
-  # SSH to instance and run deployment script
-  ssh ec2-user@instance-ip "cd /var/www/html/app && ./deploy.sh"
-  ```
+### Viewing Logs
 
-## Future Improvements
+```bash
+# View ECS task logs
+aws logs get-log-events --log-group-name /ecs/your-service-name --log-stream-name your-log-stream
 
-1. Implement CI/CD pipeline with AWS CodePipeline or GitHub Actions
-2. Add AWS WAF for additional security
-3. Implement AWS X-Ray for distributed tracing
-4. Add AWS Secrets Manager for sensitive configuration
-5. Implement database tier (RDS or DynamoDB)# Techware
+# View EC2 user data logs
+aws ec2 get-console-output --instance-id i-1234567890abcdef0
+```
+
+## Security Considerations
+
+This architecture follows AWS security best practices:
+
+1. Backend services are never exposed directly to the internet
+2. All communications are encrypted
+3. Least privilege security groups control traffic flow
+4. Private subnets protect sensitive services
+5. IAM roles use minimal required permissions
+
+Remember to rotate credentials regularly and keep dependencies updated.

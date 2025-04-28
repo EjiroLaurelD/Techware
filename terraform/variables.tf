@@ -43,13 +43,13 @@ variable "domain_name" {
 variable "backend_port" {
   description = "Port that the backend API will listen on"
   type        = number
-  default     = 8080
+  default     = 80
 }
 
 variable "api_image" {
   description = "Docker image for the API service"
   type        = string
-  default     = "techware:1" # Replace with your actual image
+  default     = "209479288101.dkr.ecr.eu-west-2.amazonaws.com/backend-app:latest" 
 }
 
 variable "api_cpu" {

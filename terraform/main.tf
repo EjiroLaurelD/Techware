@@ -1,3 +1,16 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "> 4.0"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+  }
+}
+
 provider "aws" {
   region = var.aws_region
   profile = "ejiro"
@@ -15,6 +28,35 @@ terraform {
 
   }
 }
+
+# Add this to your main.tf
+resource "tls_private_key" "domain" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "tls_self_signed_cert" "domain" {
+  private_key_pem = tls_private_key.domain.private_key_pem
+  
+  subject {
+    common_name  = "ejiro.com"  # Can be any domain, doesn't need to be real
+    organization = "Techware Organization"
+  }
+  
+  validity_period_hours = 8760  # 1 year
+  
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
+}
+
+resource "aws_acm_certificate" "self_signed" {
+  private_key      = tls_private_key.domain.private_key_pem
+  certificate_body = tls_self_signed_cert.domain.cert_pem
+}
+
 
 # Networking module
 module "networking" {
@@ -56,7 +98,7 @@ module "ecs" {
   api_memory                = var.api_memory
   api_desired_count         = var.api_desired_count
   health_check_path         = var.health_check_path
-  api_certificate_arn       = module.dns.backend_certificate_arn
+  #api_certificate_arn       = module.dns.backend_certificate_arn
 }
 
 # Frontend module
@@ -70,23 +112,25 @@ module "frontend" {
   frontend_alb_sg_id            = module.security.frontend_alb_sg_id
   frontend_instance_sg_id       = module.security.frontend_instance_sg_id
   frontend_instance_profile_name = module.security.frontend_instance_profile_name
-  api_endpoint                  = "https://${module.dns.backend_domain}"
+  api_endpoint                  = "https://backend"
   instance_type                 = var.instance_type
   min_size                      = var.min_size
   max_size                      = var.max_size
   desired_capacity              = var.desired_capacity
-  certificate_arn               = module.dns.frontend_certificate_arn
+  certificate_arn = aws_acm_certificate.self_signed.arn
+
+  # certificate_arn               = module.dns.frontend_certificate_arn
 }
 
 # DNS module
-module "dns" {
-  source = "./modules/dns"
+# module "dns" {
+#   source = "./modules/dns"
 
-  project_name         = var.project_name
-  environment          = var.environment
-  domain_name          = var.domain_name
-  frontend_lb_dns_name = module.frontend.frontend_lb_dns_name
-  frontend_lb_zone_id  = module.frontend.frontend_lb_zone_id
-  backend_lb_dns_name  = module.ecs.api_lb_dns_name
-  backend_lb_zone_id   = module.ecs.api_lb_zone_id
-}
+#   project_name         = var.project_name
+#   environment          = var.environment
+#   domain_name          = var.domain_name
+#   frontend_lb_dns_name = module.frontend.frontend_lb_dns_name
+#   frontend_lb_zone_id  = module.frontend.frontend_lb_zone_id
+#   backend_lb_dns_name  = module.ecs.api_lb_dns_name
+#   backend_lb_zone_id   = module.ecs.api_lb_zone_id
+# }

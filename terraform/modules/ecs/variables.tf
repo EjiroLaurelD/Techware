@@ -46,13 +46,13 @@ variable "ecs_tasks_sg_id" {
 variable "api_image" {
   description = "Docker image for the API service"
   type        = string
-  default     = "nginx:latest"  # Replace with your actual image
+  default     = "backend-app:latest"  
 }
 
 variable "api_port" {
   description = "Port that the API will listen on"
   type        = number
-  default     = 8080
+  default     = 80
 }
 
 variable "api_cpu" {
@@ -76,7 +76,7 @@ variable "api_desired_count" {
 variable "health_check_path" {
   description = "Path for health checks"
   type        = string
-  default     = "/health"
+  default     = "/api/data"
 }
 
 variable "api_certificate_arn" {

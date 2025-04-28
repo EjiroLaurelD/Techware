@@ -41,7 +41,7 @@ variable "api_endpoint" {
 variable "instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "t3.micro"
+  default     = "t2.micro"
 }
 
 variable "min_size" {
@@ -59,7 +59,7 @@ variable "max_size" {
 variable "desired_capacity" {
   description = "Desired capacity of the Auto Scaling Group"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "certificate_arn" {
