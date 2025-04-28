@@ -172,16 +172,36 @@ Since the backend ALB is in a private subnet, you can't access it directly from 
    curl -v http://BACKEND_ALB_DNS_NAME/api/data
    ```
 
+## Deployment Images
 
+EC2 Instance
 ![Frontend-app](./assets/ec2-instance.png)
+
+Frontend end deployed app with self signed certificate
 ![Frontend-app](./assets/frontend-app-self-signed-cert.png)
+
+Frontend LoadBalancer 
 ![Frontend-app](./assets/front-alb.png)
+
+Frontend autoscaling group
 ![Frontend-app](./assets/frontend-asg.png)
+
+Front and Backend LoadBalancers
 ![Frontend-app](./assets/lbs.png)
+
+Backend ECS Cluster 
 ![Frontend-app](./assets/backend-ecs-cluster.png)
+
+Backend Access from EC2 server 
 ![Frontend-app](./assets/backend-from-ec2.png)
+
+ALB Listeners
 ![Frontend-app](./assets/alb-listeners.png)
+
+Self signed cert on AWS ACM
 ![Frontend-app](./assets/self-signed-cert-on-acm.png)
+
+Cloudwatch Logs
 ![Frontend-app](./assets/cloudwatch-logs.png)
 
 
