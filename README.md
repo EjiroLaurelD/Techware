@@ -7,7 +7,7 @@ This repository contains the infrastructure as code (Terraform) and application 
 
 The architecture consists of the following components:
 
-![Architecture Diagram](architecture-diagram.png)
+![Architecture Diagram](./assets/aws-architecture.png)
 
 ### Network Layer
 - VPC with public and private subnets across multiple Availability Zones
