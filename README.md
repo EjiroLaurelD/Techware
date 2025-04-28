@@ -172,6 +172,19 @@ Since the backend ALB is in a private subnet, you can't access it directly from 
    curl -v http://BACKEND_ALB_DNS_NAME/api/data
    ```
 
+
+![Frontend-app](./assets/ec2-instance.png)
+![Frontend-app](./assets/frontend-app-self-signed-cert.png)
+![Frontend-app](./assets/front-alb.png)
+![Frontend-app](./assets/frontend-asg.png)
+![Frontend-app](./assets/lbs.png)
+![Frontend-app](./assets/backend-ecs-cluster.png)
+![Frontend-app](./assets/backend-from-ec2.png)
+![Frontend-app](./assets/alb-listeners.png)
+![Frontend-app](./assets/self-signed-cert-on-acm.png)
+![Frontend-app](./assets/cloudwatch-logs.png)
+
+
 ## Destroying the Infrastructure
 
 When you're done, you can destroy the infrastructure:
