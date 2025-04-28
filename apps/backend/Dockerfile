@@ -1,21 +1,20 @@
-FROM node:16-alpine
+# Use the official Node.js image
+FROM node:16
 
+# Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy package files and install dependencies
+# Copy the package.json and package-lock.json
 COPY package*.json ./
-# Replace npm ci with npm install
-RUN npm install --production
 
-# Copy application code
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the app's source code
 COPY . .
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=8080
+# Expose the backend API port (5000 in this case)
+EXPOSE 5000
 
-# Expose the port the app runs on
-EXPOSE 8080
-
-# Run the application
-CMD ["node", "app.js"]
+# Start the Express app
+CMD ["node", "server.js"]

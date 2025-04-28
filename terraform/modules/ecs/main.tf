@@ -47,10 +47,10 @@ resource "aws_ecs_service" "api" {
     Environment = var.environment
   }
 
-  # Added lifecycle block to prevent accidental deletion
-  lifecycle {
-    prevent_destroy = var.environment == "prod" ? true : false
-  }
+  # # Added lifecycle block to prevent accidental deletion
+  # lifecycle {
+  #   prevent_destroy = "prod" ? true : false
+  # }
 }
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
@@ -212,39 +212,39 @@ resource "aws_lb_listener" "api_http" {
 # }
 
 # ECS Service for API
-resource "aws_ecs_service" "api" {
-  name                               = "${var.project_name}-${var.environment}-api"
-  cluster                            = aws_ecs_cluster.main.id
-  task_definition                    = aws_ecs_task_definition.api.arn
-  desired_count                      = var.api_desired_count
-  launch_type                        = "FARGATE"
-  platform_version                   = "LATEST"
-  health_check_grace_period_seconds  = 60
-  enable_execute_command             = true  # Enable ECS Exec for debugging
+# resource "aws_ecs_service" "api" {
+#   name                               = "${var.project_name}-${var.environment}-api"
+#   cluster                            = aws_ecs_cluster.main.id
+#   task_definition                    = aws_ecs_task_definition.api.arn
+#   desired_count                      = var.api_desired_count
+#   launch_type                        = "FARGATE"
+#   platform_version                   = "LATEST"
+#   health_check_grace_period_seconds  = 60
+#   enable_execute_command             = true  # Enable ECS Exec for debugging
 
-  network_configuration {
-    subnets          = var.private_subnet_ids
-    security_groups  = [var.ecs_tasks_sg_id]
-    assign_public_ip = false
-  }
+#   network_configuration {
+#     subnets          = var.private_subnet_ids
+#     security_groups  = [var.ecs_tasks_sg_id]
+#     assign_public_ip = false
+#   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.api.arn
-    container_name   = "${var.project_name}-api"
-    container_port   = var.api_port
-  }
+#   load_balancer {
+#     target_group_arn = aws_lb_target_group.api.arn
+#     container_name   = "${var.project_name}-api"
+#     container_port   = var.api_port
+#   }
 
-  deployment_circuit_breaker {
-    enable   = true
-    rollback = true
-  }
+#   deployment_circuit_breaker {
+#     enable   = true
+#     rollback = true
+#   }
 
-  deployment_controller {
-    type = "ECS"
-  }
+#   deployment_controller {
+#     type = "ECS"
+#   }
 
-  tags = {
-    Name        = "${var.project_name}-api-service"
-    Environment = var.environment
-  }
-}
+#   tags = {
+#     Name        = "${var.project_name}-api-service"
+#     Environment = var.environment
+#   }
+# }

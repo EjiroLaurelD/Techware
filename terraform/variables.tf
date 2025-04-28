@@ -67,7 +67,7 @@ variable "api_memory" {
 variable "api_desired_count" {
   description = "Desired number of API tasks"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "health_check_path" {
@@ -79,7 +79,7 @@ variable "health_check_path" {
 variable "instance_type" {
   description = "EC2 instance type for frontend"
   type        = string
-  default     = "t3.micro"
+  default     = "t2.micro"
 }
 
 variable "min_size" {
@@ -97,5 +97,5 @@ variable "max_size" {
 variable "desired_capacity" {
   description = "Desired capacity of the Auto Scaling Group"
   type        = number
-  default     = 2
+  default     = 1
 }
